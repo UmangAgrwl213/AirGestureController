@@ -1,0 +1,19 @@
+{
+  "mappings": {
+    "fist": {
+      "action": "hotkey",
+      "keys": [
+        "win",
+        "d"
+      ]
+    },
+    "pinch_index": {
+      "action": "press",
+      "key": "nexttrack"
+    },
+    "pinch_middle": {
+      "action": "press",
+      "key": "playpause"
+    }
+  }
+}

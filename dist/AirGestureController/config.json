@@ -1,0 +1,19 @@
+{
+  "mappings": {
+    "pinch_index": {
+      "action": "click",
+      "button": "left"
+    },
+    "pinch_middle": {
+      "action": "click",
+      "button": "right"
+    },
+    "fist": {
+      "action": "hotkey",
+      "keys": [
+        "win",
+        "m"
+      ]
+    }
+  }
+}

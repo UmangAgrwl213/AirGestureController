@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirControl | Gestures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080808;
+            --card: #111111;
+            --accent: #ffffff;
+            --border: #222222;
+            --text-muted: #888888;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: -0.01em;
+        }
+
+        .heading { font-family: 'Space Grotesk', sans-serif; }
+
+        .gesture-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .gesture-card:hover {
+            border-color: #444;
+            background: #161616;
+        }
+
+        .gesture-card.active {
+            border-color: var(--accent);
+        }
+
+        .action-pane {
+            background: #000000;
+            border-left: 1px solid var(--border);
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .action-pane.open {
+            transform: translateX(0);
+        }
+
+        .layered-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .layered-item:hover {
+            background: #111111;
+        }
+
+        .badge {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 2px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-muted);
+        }
+
+        /* Video Feed Styles */
+        .video-container {
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .layer-back-btn {
+            padding: 16px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.2s;
+        }
+
+        .layer-back-btn:hover {
+            color: #ffffff;
+        }
+
+        .layer-back-btn::before {
+            content: '←';
+        }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex">
+    
+    <!-- Main Content Area -->
+    <main class="flex-grow flex flex-col p-12 max-w-5xl mx-auto w-full">
+        <!-- Header -->
+        <header class="flex justify-between items-end mb-16">
+            <div>
+                <h1 class="heading text-4xl font-light tracking-tight mb-2">AirControl<span class="font-bold">.</span></h1>
+                <p class="text-xs text-zinc-500 uppercase tracking-[0.3em] font-medium">Gesture Mapping Interface</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-zinc-600 uppercase tracking-widest mb-1">Status</p>
+                <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                    <span class="text-xs font-medium text-emerald-500/80">System Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Video Monitor -->
+        <section class="mb-12">
+            <div class="video-container">
+                <img src="/video_feed" class="w-full h-full object-cover grayscale contrast-125 opacity-80 hover:grayscale-0 transition-all duration-700" alt="Live Feed">
+            </div>
+        </section>
+
+        <!-- Gestures Grid -->
+        <section class="grid grid-cols-4 gap-4 mb-12">
+            <div onclick="openSelector('pinch_index')" class="gesture-card p-6 rounded-lg group">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pinch</p>
+                <h3 class="heading text-lg font-medium mb-1">Index</h3>
+                <p id="label-pinch_index" class="text-[10px] text-zinc-400 font-light truncate">--</p>
+            </div>
+            
+            <div onclick="openSelector('pinch_middle')" class="gesture-card p-6 rounded-lg group">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pinch</p>
+                <h3 class="heading text-lg font-medium mb-1">Middle</h3>
+                <p id="label-pinch_middle" class="text-[10px] text-zinc-400 font-light truncate">--</p>
+            </div>
+
+            <div onclick="openSelector('pinch_ring')" class="gesture-card p-6 rounded-lg group">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pinch</p>
+                <h3 class="heading text-lg font-medium mb-1">Ring</h3>
+                <p id="label-pinch_ring" class="text-[10px] text-zinc-400 font-light truncate">--</p>
+            </div>
+
+            <div onclick="openSelector('pinch_pinky')" class="gesture-card p-6 rounded-lg group">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pinch</p>
+                <h3 class="heading text-lg font-medium mb-1">Pinky</h3>
+                <p id="label-pinch_pinky" class="text-[10px] text-zinc-400 font-light truncate">--</p>
+            </div>
+
+            <div onclick="openSelector('fist')" class="gesture-card p-6 rounded-lg group">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pose</p>
+                <h3 class="heading text-lg font-medium mb-1">Fist</h3>
+                <p id="label-fist" class="text-[10px] text-zinc-400 font-light truncate">--</p>
+            </div>
+
+            <div onclick="openSelector('victory')" class="gesture-card p-6 rounded-lg group">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pose</p>
+                <h3 class="heading text-lg font-medium mb-1">Victory</h3>
+                <p id="label-victory" class="text-[10px] text-zinc-400 font-light truncate">--</p>
+            </div>
+
+            <div onclick="openSelector('open_palm')" class="gesture-card p-6 rounded-lg group">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pose</p>
+                <h3 class="heading text-lg font-medium mb-1">Palm</h3>
+                <p id="label-open_palm" class="text-[10px] text-zinc-400 font-light truncate">--</p>
+            </div>
+
+            <div class="gesture-card p-6 rounded-lg opacity-40 grayscale border-dashed">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Feature</p>
+                <h3 class="heading text-lg font-medium mb-1">Clutch</h3>
+                <p class="text-[10px] text-zinc-400 font-light">Tuck Thumb</p>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-auto pt-12 border-t border-zinc-900 flex justify-between items-center text-[10px] text-zinc-600 uppercase tracking-widest">
+            <p>© 2026 BuildAtScale. v2.1.0</p>
+            <p>Ready for input</p>
+        </footer>
+    </main>
+
+    <!-- Side Action Pane (The "Layered" Selector) -->
+    <div id="selector-pane" class="action-pane fixed top-0 right-0 h-full w-[400px] z-50 flex flex-col shadow-2xl">
+        <div class="p-10 flex justify-between items-center border-bottom border-zinc-900">
+            <div>
+                <h2 id="current-gesture-name" class="heading text-xl font-medium">Select Action</h2>
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Layer 1: Category</p>
+            </div>
+            <button onclick="closeSelector()" class="text-zinc-500 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- Layer 1: Categories -->
+        <div id="layer-categories" class="flex-grow overflow-y-auto">
+            <div onclick="showLayer('clicks')" class="layered-item">
+                <span class="text-sm font-medium">Mouse Clicks</span>
+                <span class="badge">L, R, M</span>
+            </div>
+            <div onclick="showLayer('editing')" class="layered-item">
+                <span class="text-sm font-medium">Productivity & Editing</span>
+                <span class="badge">Copy, Paste...</span>
+            </div>
+            <div onclick="showLayer('media')" class="layered-item">
+                <span class="text-sm font-medium">Media & Audio</span>
+                <span class="badge">Vol, Play...</span>
+            </div>
+            <div onclick="showLayer('browser')" class="layered-item">
+                <span class="text-sm font-medium">Web & Navigation</span>
+                <span class="badge">Tabs, Back...</span>
+            </div>
+            <div onclick="showLayer('system')" class="layered-item">
+                <span class="text-sm font-medium">System Control</span>
+                <span class="badge">Win, Task...</span>
+            </div>
+        </div>
+
+        <!-- Layer 2: Specifics -->
+        <div id="layer-clicks" class="hidden flex-grow overflow-y-auto">
+            <div onclick="goBack()" class="layer-back-btn">Back</div>
+            <div onclick="applyAction('click', 'left')" class="layered-item">Left Click</div>
+            <div onclick="applyAction('click', 'right')" class="layered-item">Right Click</div>
+            <div onclick="applyAction('click', 'middle')" class="layered-item">Middle Click</div>
+        </div>
+
+        <div id="layer-editing" class="hidden flex-grow overflow-y-auto">
+            <div onclick="goBack()" class="layer-back-btn">Back</div>
+            <div onclick="applyAction('hotkey', 'ctrl,c')" class="layered-item">Copy <span class="badge">Ctrl+C</span></div>
+            <div onclick="applyAction('hotkey', 'ctrl,v')" class="layered-item">Paste <span class="badge">Ctrl+V</span></div>
+            <div onclick="applyAction('hotkey', 'ctrl,x')" class="layered-item">Cut <span class="badge">Ctrl+X</span></div>
+            <div onclick="applyAction('hotkey', 'ctrl,z')" class="layered-item">Undo <span class="badge">Ctrl+Z</span></div>
+            <div onclick="applyAction('hotkey', 'ctrl,y')" class="layered-item">Redo <span class="badge">Ctrl+Y</span></div>
+            <div onclick="applyAction('hotkey', 'ctrl,s')" class="layered-item">Save <span class="badge">Ctrl+S</span></div>
+            <div onclick="applyAction('hotkey', 'ctrl,a')" class="layered-item">Select All <span class="badge">Ctrl+A</span></div>
+        </div>
+
+        <div id="layer-media" class="hidden flex-grow overflow-y-auto">
+            <div onclick="goBack()" class="layer-back-btn">Back</div>
+            <div onclick="applyAction('press', 'playpause')" class="layered-item">Play / Pause</div>
+            <div onclick="applyAction('press', 'volumeup')" class="layered-item">Volume Up</div>
+            <div onclick="applyAction('press', 'volumedown')" class="layered-item">Volume Down</div>
+            <div onclick="applyAction('press', 'volumemute')" class="layered-item">Mute</div>
+            <div onclick="applyAction('press', 'nexttrack')" class="layered-item">Next Track</div>
+            <div onclick="applyAction('press', 'prevtrack')" class="layered-item">Previous Track</div>
+        </div>
+
+        <div id="layer-browser" class="hidden flex-grow overflow-y-auto">
+            <div onclick="goBack()" class="layer-back-btn">Back</div>
+            <div onclick="applyAction('hotkey', 'ctrl,t')" class="layered-item">New Tab <span class="badge">Ctrl+T</span></div>
+            <div onclick="applyAction('hotkey', 'ctrl,w')" class="layered-item">Close Tab <span class="badge">Ctrl+W</span></div>
+            <div onclick="applyAction('hotkey', 'ctrl,tab')" class="layered-item">Next Tab</div>
+            <div onclick="applyAction('hotkey', 'alt,left')" class="layered-item">Go Back</div>
+            <div onclick="applyAction('hotkey', 'alt,right')" class="layered-item">Go Forward</div>
+            <div onclick="applyAction('press', 'f5')" class="layered-item">Refresh Page</div>
+        </div>
+
+        <div id="layer-system" class="hidden flex-grow overflow-y-auto">
+            <div onclick="goBack()" class="layer-back-btn">Back</div>
+            <div onclick="applyAction('hotkey', 'win,d')" class="layered-item">Show Desktop <span class="badge">Win+D</span></div>
+            <div onclick="applyAction('hotkey', 'alt,tab')" class="layered-item">Switch App <span class="badge">Alt+Tab</span></div>
+            <div onclick="applyAction('hotkey', 'win,tab')" class="layered-item">Task View <span class="badge">Win+Tab</span></div>
+            <div onclick="applyAction('hotkey', 'alt,f4')" class="layered-item">Close Window <span class="badge">Alt+F4</span></div>
+            <div onclick="applyAction('hotkey', 'win,l')" class="layered-item">Lock PC <span class="badge">Win+L</span></div>
+            <div onclick="applyAction('press', 'pageup')" class="layered-item">Page Up</div>
+            <div onclick="applyAction('press', 'pagedown')" class="layered-item">Page Down</div>
+        </div>
+
+        <div class="p-10 border-t border-zinc-900 bg-zinc-950 text-[10px] text-zinc-600 uppercase tracking-widest leading-relaxed">
+            Changes are applied immediately to the active control engine.
+        </div>
+    </div>
+
+    <script>
+        let selectedGesture = null;
+        let config = {};
+
+        async function loadConfig() {
+            const res = await fetch('/get_config');
+            const data = await res.json();
+            config = data;
+            
+            // Update labels
+            for (const [gesture, mapping] of Object.entries(data.mappings)) {
+                const el = document.getElementById(`label-${gesture}`);
+                if (el) {
+                    if (mapping.action === 'click') el.innerText = `${mapping.button.charAt(0).toUpperCase() + mapping.button.slice(1)} Click`;
+                    else if (mapping.action === 'hotkey') el.innerText = mapping.keys.join(' + ').toUpperCase();
+                    else el.innerText = mapping.key.toUpperCase();
+                }
+            }
+        }
+
+        function openSelector(gesture) {
+            selectedGesture = gesture;
+            document.getElementById('current-gesture-name').innerText = gesture.replace('_', ' ').toUpperCase();
+            document.getElementById('selector-pane').classList.add('open');
+            goBack(); // Reset to category view
+        }
+
+        function closeSelector() {
+            document.getElementById('selector-pane').classList.remove('open');
+        }
+
+        function showLayer(layerId) {
+            document.getElementById('layer-categories').classList.add('hidden');
+            document.getElementById(`layer-${layerId}`).classList.remove('hidden');
+        }
+
+        function goBack() {
+            ['clicks', 'scroll', 'macros'].forEach(l => {
+                document.getElementById(`layer-${l}`).classList.add('hidden');
+            });
+            document.getElementById('layer-categories').classList.remove('hidden');
+        }
+
+        async function applyAction(type, value) {
+            const mapping = { action: type };
+            if (type === 'click') mapping.button = value;
+            else if (type === 'hotkey') mapping.keys = value.split(',');
+            else if (type === 'press') mapping.key = value;
+
+            config.mappings[selectedGesture] = mapping;
+
+            await fetch('/update_config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+
+            await loadConfig();
+            closeSelector();
+        }
+
+        loadConfig();
+    </script>
+</body>
+</html>
