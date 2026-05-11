@@ -8,12 +8,16 @@
       ]
     },
     "pinch_index": {
-      "action": "press",
-      "key": "nexttrack"
+      "action": "click",
+      "button": "left"
     },
     "pinch_middle": {
+      "action": "click",
+      "button": "right"
+    },
+    "pinch_ring": {
       "action": "press",
-      "key": "playpause"
+      "key": "pause/play"
     }
   }
 }
