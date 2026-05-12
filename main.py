@@ -42,8 +42,9 @@ def main(cam_id=1):
             cv2.rectangle(img, (fr, fr), (w_cam - fr, h_cam - fr), (255, 0, 0), 2)
 
             if len(lm_list) != 0:
-                # 4. Mouse Movement (Index finger)
-                controller.move_mouse(lm_list[8][1], lm_list[8][2])
+                # 4. Mouse Movement (Index finger - Strictly Right hand only)
+                if handedness == "Right":
+                    controller.move_mouse(lm_list[8][1], lm_list[8][2])
                 
                 # 5. Gesture Processing (Macros)
                 # Determine if pinching for shape signature

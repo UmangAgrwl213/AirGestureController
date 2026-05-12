@@ -254,12 +254,14 @@ class SystemController:
         self.clutch_mode = (current_shape == "clutch")
 
         # 8. Continuous Actions (Scroll/Volume)
+        # Scroll allowed for both hands
         if current_shape == "victory" and len(self.history) >= 2:
             dy = self.history[-1][1] - self.history[-2][1]
             if abs(dy) > 2: # Sensitivity threshold
                 scroll_amount = int(-dy * 20) # Scale as needed
                 pyautogui.scroll(scroll_amount)
         
+        # Volume allowed for both hands
         if current_shape == "three_fingers" and len(self.history) >= 2:
             dy = self.history[-1][1] - self.history[-2][1]
             if abs(dy) > 5:
@@ -275,7 +277,9 @@ class SystemController:
             if not self.states.get(current_shape, {}).get("active", False):
                 target_name = specific_name if specific_name in self.config else general_name if general_name in self.config else None
                 if target_name:
-                    self.execute_action(self.config[target_name])
+                    mapping = self.config[target_name]
+                    # All actions (Click/Drag/Scroll/Hotkey) allowed for both hands now
+                    self.execute_action(mapping)
                     triggered = target_name
                 
                 if current_shape in self.states: self.states[current_shape]["active"] = True
