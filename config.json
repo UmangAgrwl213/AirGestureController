@@ -6,12 +6,9 @@
     "tracking_confidence": 0.8
   },
   "mappings": {
-    "thumb_up_right": {
+    "rock_on_left": {
       "action": "click",
-      "key": "ctrl",
-      "keys": [
-        "x"
-      ],
+      "key": "space",
       "button": "left"
     }
   }

@@ -92,9 +92,8 @@ class GestureEngine(threading.Thread):
                         fingers = self.detector.fingers_up(lm_list)
                         
                         if lm_list:
-                            # 4.1. Mouse Control (Only one hand should move mouse, prioritize Right)
-                            # If it's the right hand, or if it's the only hand, move mouse
-                            if handedness == "Right" or num_hands == 1:
+                            # 4.1. Mouse Control (Strictly Right hand only)
+                            if handedness == "Right":
                                 try:
                                     self.controller.move_mouse(lm_list[8][1], lm_list[8][2])
                                 except Exception as e:

@@ -31,7 +31,7 @@ state = GlobalState()
 def monitor_heartbeat():
     """Background task to check if the browser is still alive."""
     while not state.shutdown_flag:
-        if time.time() - state.last_heartbeat > 10: # 10 second grace period
+        if time.time() - state.last_heartbeat > 300: # 5 minute grace period
             print("\n[!] NO_HEARTBEAT_DETECTED: Browser closed or disconnected.")
             print("[!] SHUTTING_DOWN_BIO_LINK...")
             if state.engine:
