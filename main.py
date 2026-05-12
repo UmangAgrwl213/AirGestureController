@@ -22,61 +22,72 @@ def main(cam_id=1):
     print(f"Macro Controller initialized using camera {cam_id}.")
     print("Default mappings: Pinch Index -> Left Click, Pinch Middle -> Right Click, Fist -> Show Desktop")
 
-    while True:
-        # Check for config updates (Hot-Reload)
-        controller.load_config()
+    try:
+        while True:
+            # Check for config updates (Hot-Reload)
+            controller.load_config()
 
-        success, img = cap.read()
-        if not success:
-            print(f"Failed to capture image from camera {cam_id}")
-            break
+            success, img = cap.read()
+            if not success:
+                print(f"Failed to capture image from camera {cam_id}")
+                break
+                
+            # 2. Find Hand Landmarks
+            img = detector.find_hands(img)
+            lm_list, handedness = detector.find_position(img, draw=False) 
+            fingers = detector.fingers_up(lm_list)
             
-        # 2. Find Hand Landmarks
-        img = detector.find_hands(img)
-        lm_list = detector.find_position(img, draw=False) 
-        fingers = detector.fingers_up()
-        
-        # 3. Draw Active Area
-        fr = controller.frame_reduction
-        cv2.rectangle(img, (fr, fr), (w_cam - fr, h_cam - fr), (255, 0, 0), 2)
+            # 3. Draw Active Area
+            fr = controller.frame_reduction
+            cv2.rectangle(img, (fr, fr), (w_cam - fr, h_cam - fr), (255, 0, 0), 2)
 
-        if len(lm_list) != 0:
-            # 4. Mouse Movement (Index finger)
-            controller.move_mouse(lm_list[8][1], lm_list[8][2])
+            if len(lm_list) != 0:
+                # 4. Mouse Movement (Index finger)
+                controller.move_mouse(lm_list[8][1], lm_list[8][2])
+                
+                # 5. Gesture Processing (Macros)
+                # Determine if pinching for shape signature
+                x0, y0 = lm_list[0][3], lm_list[0][4]
+                x9, y9 = lm_list[9][3], lm_list[9][4]
+                hand_scale = np.hypot(x9 - x0, y9 - y0)
+                is_pinching = np.hypot(lm_list[8][3] - lm_list[4][3], lm_list[8][4] - lm_list[4][4]) < (hand_scale * 0.15)
+                
+                current_shape = detector.get_signature_shape(fingers, is_pinching)
+                gesture = controller.process_gestures(lm_list, fingers, handedness, current_shape)
+                
+                # 6. Visual Feedback
+                # Draw all finger states
+                cv2.putText(img, f"Fingers: {fingers}", (w_cam - 300, 50), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                
+                if gesture:
+                    cv2.putText(img, f"ACTION: {gesture}", (50, 100), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
+
+                # Color markers based on state
+                idx_color = (0, 255, 0) if controller.states["pinch_index"]["active"] else (0, 0, 255)
+                mid_color = (0, 255, 0) if controller.states["pinch_middle"]["active"] else (0, 0, 255)
+                fist_color = (0, 255, 0) if controller.states["fist"]["active"] else (255, 255, 255)
+
+                # Draw Index and Middle markers
+                cv2.circle(img, (lm_list[8][1], lm_list[8][2]), 10, idx_color, cv2.FILLED)
+                cv2.circle(img, (lm_list[12][1], lm_list[12][2]), 10, mid_color, cv2.FILLED)
+                
+                if controller.states["fist"]["active"]:
+                     cv2.putText(img, "FIST DETECTED", (w_cam // 2 - 100, h_cam // 2), 
+                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
+
+            # 7. Display the feed
+            cv2.imshow("Air Gesture Macro Controller", img)
             
-            # 5. Gesture Processing (Macros)
-            gesture = controller.process_gestures(lm_list, fingers)
-            
-            # 6. Visual Feedback
-            # Draw all finger states
-            cv2.putText(img, f"Fingers: {fingers}", (w_cam - 300, 50), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-            
-            if gesture:
-                cv2.putText(img, f"ACTION: {gesture}", (50, 100), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-            # Color markers based on state
-            idx_color = (0, 255, 0) if controller.states["pinch_index"]["active"] else (0, 0, 255)
-            mid_color = (0, 255, 0) if controller.states["pinch_middle"]["active"] else (0, 0, 255)
-            fist_color = (0, 255, 0) if controller.states["fist"]["active"] else (255, 255, 255)
-
-            # Draw Index and Middle markers
-            cv2.circle(img, (lm_list[8][1], lm_list[8][2]), 10, idx_color, cv2.FILLED)
-            cv2.circle(img, (lm_list[12][1], lm_list[12][2]), 10, mid_color, cv2.FILLED)
-            
-            if controller.states["fist"]["active"]:
-                 cv2.putText(img, "FIST DETECTED", (w_cam // 2 - 100, h_cam // 2), 
-                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
-
-        # 7. Display the feed
-        cv2.imshow("Air Gesture Macro Controller", img)
-        
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
+    finally:
+        if cap.isOpened():
+            cap.release()
+        cv2.destroyAllWindows()
+        print("Resources released.")
 
 if __name__ == "__main__":
     try:

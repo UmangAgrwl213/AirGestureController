@@ -1,0 +1,36 @@
+name: AirGestureController Continue Config
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Kimi-2.6-Chat
+    provider: nvidia
+    model: moonshotai/kimi-k2.6
+    apiKey: ${NVIDIA_API_KEY}
+    completionOptions:
+      temperature: 0
+      topP: 0.7
+      maxTokens: 1024
+      stop:
+        - <reserved_token_163777>
+      extraBody:
+        chat_template_kwargs:
+          thinking: false
+    requestOptions:
+      timeout: 180000
+
+  - name: Kimi-2.5-Compatible
+    provider: nvidia
+    model: moonshotai/kimi-k2-instruct
+    apiKey: ${NVIDIA_API_KEY}
+    completionOptions:
+      temperature: 0
+      topP: 0.7
+      maxTokens: 1024
+      stop:
+        - <reserved_token_163777>
+      extraBody:
+        chat_template_kwargs:
+          thinking: false
+    requestOptions:
+      timeout: 120000

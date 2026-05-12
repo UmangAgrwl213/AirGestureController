@@ -3,347 +3,386 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AirControl | Gestures</title>
+    <title>AirGesture Pro | Natural Biometric</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgMain: '#FDFBF7',
+                        panelBg: '#FFFFFF',
+                        sage: '#c8d3bb',
+                        copper: '#D9B97A',
+                        copperDark: '#9B8D73',
+                        textMain: '#1A1D1E',
+                        textMuted: '#6B7280',
+                        borderSubtle: '#E8DCC1'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --bg: #080808;
-            --card: #111111;
-            --accent: #ffffff;
-            --border: #222222;
-            --text-muted: #888888;
-        }
-
-        body {
-            background-color: var(--bg);
-            color: #ffffff;
+        body { 
+            background-color: #FDFBF7; 
+            color: #1A1D1E; 
             font-family: 'Inter', sans-serif;
-            letter-spacing: -0.01em;
+            background-image: radial-gradient(circle at top right, rgba(217,185,122,0.05), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(200,211,187,0.05), transparent 40%);
         }
-
-        .heading { font-family: 'Space Grotesk', sans-serif; }
-
-        .gesture-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-        }
-
-        .gesture-card:hover {
-            border-color: #444;
-            background: #161616;
-        }
-
-        .gesture-card.active {
-            border-color: var(--accent);
-        }
-
-        .action-pane {
-            background: #000000;
-            border-left: 1px solid var(--border);
-            transform: translateX(100%);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .action-pane.open {
-            transform: translateX(0);
-        }
-
-        .layered-item {
-            padding: 16px;
-            border-bottom: 1px solid var(--border);
-            transition: background 0.2s;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .layered-item:hover {
-            background: #111111;
-        }
-
-        .badge {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            padding: 2px 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            color: var(--text-muted);
-        }
-
-        /* Video Feed Styles */
-        .video-container {
-            aspect-ratio: 16/9;
-            background: #000;
-            border-radius: 4px;
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .panel, .small-card, .soft-panel {
+            background: #FFFFFF;
+            border: 1px solid rgba(232, 220, 193, 0.5);
+            border-radius: 24px;
+            position: relative;
             overflow: hidden;
-            border: 1px solid var(--border);
+            box-shadow: 0 10px 40px rgba(214,184,120,.08), 0 2px 6px rgba(0,0,0,.03), inset 0 1px 0 rgba(255,255,255,.8);
+            transition: all .35s ease;
         }
-
-        .layer-back-btn {
-            padding: 16px;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
-            cursor: pointer;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: color 0.2s;
+        .panel::before {
+            content: ""; position: absolute; top: -40px; right: -40px; width: 140px; height: 140px; border-radius: 999px;
+            background: rgba(255,238,180,.25); filter: blur(40px); pointer-events: none;
         }
-
-        .layer-back-btn:hover {
-            color: #ffffff;
+        .small-card:hover, .soft-panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 50px rgba(214,184,120,.12), 0 4px 12px rgba(0,0,0,.04), inset 0 1px 0 rgba(255,255,255,.9);
         }
-
-        .layer-back-btn::before {
-            content: '←';
+        .capture-btn { background-color: #FFF9EE; border: 1px solid #D9B97A; color: #9B8D73; transition: all 0.3s ease; }
+        .capture-btn:hover { background-color: #D9B97A; color: #FFFFFF; }
+        .primary-btn { background-color: #1A1D1E; color: #FFFFFF; transition: all 0.3s ease; }
+        .primary-btn:hover { background-color: #2D3234; transform: translateY(-1px); box-shadow: 0 10px 20px rgba(26,29,30,.15); }
+        .stop-btn { background-color: #FFF9EE; color: #E63946; border: 1px solid rgba(230, 57, 70, 0.3); }
+        .status { background: rgba(200, 211, 187, 0.2); color: #4C6B5F; border: 1px solid rgba(200, 211, 187, 0.5); }
+        .pulse { animation: pulse-anim 2s infinite; }
+        @keyframes pulse-anim {
+            0% { box-shadow: 0 0 0 0 rgba(217,185,122,0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(217,185,122,0); }
+            100% { box-shadow: 0 0 0 0 rgba(217,185,122,0); }
         }
+        .main-grid { display: grid; grid-template-columns: 280px 1fr 380px; gap: 32px; padding: 32px; height: 100vh; max-width: 1800px; margin: 0 auto; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #E8DCC1; border-radius: 10px; }
     </style>
 </head>
-<body class="h-screen overflow-hidden flex">
-    
-    <!-- Main Content Area -->
-    <main class="flex-grow flex flex-col p-12 max-w-5xl mx-auto w-full">
-        <!-- Header -->
-        <header class="flex justify-between items-end mb-16">
-            <div>
-                <h1 class="heading text-4xl font-light tracking-tight mb-2">AirControl<span class="font-bold">.</span></h1>
-                <p class="text-xs text-zinc-500 uppercase tracking-[0.3em] font-medium">Gesture Mapping Interface</p>
+<body class="overflow-hidden">
+    <div class="main-grid">
+        <!-- LEFT SIDEBAR -->
+        <div class="flex flex-col gap-6 h-full">
+            <div class="mb-4">
+                <h1 class="text-2xl font-bold tracking-tight">AirGesture</h1>
+                <p class="mono text-xs text-copperDark tracking-widest mt-1">BIO_INTELLIGENCE</p>
             </div>
-            <div class="text-right">
-                <p class="text-[10px] text-zinc-600 uppercase tracking-widest mb-1">Status</p>
-                <div class="flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                    <span class="text-xs font-medium text-emerald-500/80">System Connected</span>
+            <nav class="flex flex-col gap-3">
+                <button onclick="showTab('dashboard')" id="nav-dashboard" class="nav-link text-left px-5 py-4 rounded-2xl bg-white shadow-sm border border-borderSubtle font-semibold text-sm transition-all">Dashboard</button>
+                <button onclick="showTab('matrix')" id="nav-matrix" class="nav-link text-left px-5 py-4 rounded-2xl text-textMuted hover:bg-white/50 transition-all font-semibold text-sm">Gesture Matrix</button>
+                <button onclick="showTab('logs')" id="nav-logs" class="nav-link text-left px-5 py-4 rounded-2xl text-textMuted hover:bg-white/50 transition-all font-semibold text-sm">Session Logs</button>
+                <button onclick="showTab('calibration')" id="nav-calibration" class="nav-link text-left px-5 py-4 rounded-2xl text-textMuted hover:bg-white/50 transition-all font-semibold text-sm">Calibration</button>
+            </nav>
+            <div class="mt-auto panel p-5">
+                <p class="mono text-[10px] tracking-[2px] text-copperDark mb-3">SYSTEM STATUS</p>
+                <div class="flex items-center gap-3 mb-4">
+                    <div id="status-dot" class="w-3 h-3 rounded-full bg-red-400"></div>
+                    <span id="status-text" class="font-semibold text-sm">Offline</span>
+                </div>
+                <button id="toggle-btn" onclick="toggleEngine()" class="primary-btn w-full py-3 rounded-xl text-sm font-semibold">Initialize Sensor</button>
+            </div>
+        </div>
+
+        <!-- CENTER AREA -->
+        <div class="flex flex-col gap-6 h-full overflow-y-auto pr-2 pb-10">
+            <!-- Tab 1: Dashboard -->
+            <div id="tab-dashboard" class="tab-content flex flex-col gap-6">
+                <div class="panel p-2 relative h-[400px]">
+                    <div class="absolute top-6 left-6 z-10">
+                        <span class="bg-white/80 backdrop-blur-md border border-borderSubtle px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm">Live Bio-Feed</span>
+                    </div>
+                    <div class="w-full h-full rounded-[20px] overflow-hidden bg-[#0A0B0C] relative">
+                        <img id="video-feed" src="" class="w-full h-full object-cover opacity-90 hidden" alt="Feed">
+                        <div id="feed-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                            <svg class="w-12 h-12 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            <p class="font-mono text-xs tracking-widest">SENSOR SLEEPING</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div class="small-card p-5">
+                        <p class="text-gray-500 text-sm font-medium">Motion Stability</p>
+                        <div class="mt-4 h-[100px] flex items-end justify-between gap-2 px-2">
+                            <div class="w-full bg-[#E9DEC5] rounded-t-sm h-[45%]"></div>
+                            <div class="w-full bg-[#E9DEC5] rounded-t-sm h-[62%]"></div>
+                            <div class="w-full bg-[#E9DEC5] rounded-t-sm h-[80%]"></div>
+                            <div class="w-full bg-[#D9B97A] rounded-t-sm h-[100%] shadow-[0_0_10px_rgba(217,185,122,0.4)]"></div>
+                            <div class="w-full bg-[#E9DEC5] rounded-t-sm h-[72%]"></div>
+                        </div>
+                    </div>
+                    <div class="small-card p-5 flex flex-col justify-between">
+                        <p class="text-gray-500 text-sm font-medium">Response Latency</p>
+                        <div>
+                            <h3 class="text-5xl font-bold text-textMain tracking-tight">12<span class="text-2xl text-textMuted">ms</span></h3>
+                            <p class="text-[#9B8D73] mt-2 text-xs font-medium">Ultra-low response delay</p>
+                        </div>
+                    </div>
+                    <div class="small-card p-5">
+                        <p class="text-gray-500 text-sm font-medium mb-4">Sensor Confidence</p>
+                        <div class="relative w-[110px] h-[110px] mx-auto">
+                            <div class="absolute inset-0 rounded-full border-[10px] border-[#EEE3C7]"></div>
+                            <div class="absolute inset-0 rounded-full border-[10px] border-[#D9B97A]" style="clip-path: inset(0 0 25% 0);"></div>
+                            <div class="absolute inset-0 flex items-center justify-center"><span class="text-2xl font-bold text-textMain">98%</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel p-6">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <p class="mono text-[10px] tracking-[3px] text-[#c8b27d]">SESSION HISTORY</p>
+                            <h3 class="text-xl font-semibold mt-1">Interaction Timeline</h3>
+                        </div>
+                        <button class="capture-btn px-4 py-2 rounded-full text-xs font-semibold">Export Log</button>
+                    </div>
+                    <div id="log-container" class="flex flex-col gap-6 h-[200px] overflow-y-auto pr-4"></div>
                 </div>
             </div>
-        </header>
 
-        <!-- Video Monitor -->
-        <section class="mb-12">
-            <div class="video-container">
-                <img src="/video_feed" class="w-full h-full object-cover grayscale contrast-125 opacity-80 hover:grayscale-0 transition-all duration-700" alt="Live Feed">
-            </div>
-        </section>
-
-        <!-- Gestures Grid -->
-        <section class="grid grid-cols-4 gap-4 mb-12">
-            <div onclick="openSelector('pinch_index')" class="gesture-card p-6 rounded-lg group">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pinch</p>
-                <h3 class="heading text-lg font-medium mb-1">Index</h3>
-                <p id="label-pinch_index" class="text-[10px] text-zinc-400 font-light truncate">--</p>
-            </div>
-            
-            <div onclick="openSelector('pinch_middle')" class="gesture-card p-6 rounded-lg group">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pinch</p>
-                <h3 class="heading text-lg font-medium mb-1">Middle</h3>
-                <p id="label-pinch_middle" class="text-[10px] text-zinc-400 font-light truncate">--</p>
-            </div>
-
-            <div onclick="openSelector('pinch_ring')" class="gesture-card p-6 rounded-lg group">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pinch</p>
-                <h3 class="heading text-lg font-medium mb-1">Ring</h3>
-                <p id="label-pinch_ring" class="text-[10px] text-zinc-400 font-light truncate">--</p>
-            </div>
-
-            <div onclick="openSelector('pinch_pinky')" class="gesture-card p-6 rounded-lg group">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pinch</p>
-                <h3 class="heading text-lg font-medium mb-1">Pinky</h3>
-                <p id="label-pinch_pinky" class="text-[10px] text-zinc-400 font-light truncate">--</p>
+            <!-- Tab 2: Matrix -->
+            <div id="tab-matrix" class="tab-content hidden flex flex-col gap-6 h-full">
+                <div class="panel p-8">
+                    <p class="mono text-[10px] tracking-[3px] text-[#c8b27d]">NEURAL LINK CREATOR</p>
+                    <h3 class="text-xl font-semibold mt-1 mb-6">Assign New Gesture Macro</h3>
+                    <div class="flex items-center gap-4 bg-[#FDFBF7] p-6 rounded-2xl border border-[#E8DCC1]">
+                        <div class="flex flex-col gap-2">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase">1. Select Gesture</span>
+                            <select id="new-base-gesture" class="bg-white border border-[#E8DCC1] text-sm rounded-xl px-4 py-2.5 outline-none text-textMain w-48 font-bold focus:border-copper transition-colors">
+                                <optgroup label="Core Shapes"><option value="thumb_up">Thumb Up 👍</option><option value="l_shape">L-Shape 👆</option><option value="victory">Victory ✌️</option><option value="rock_on">Rock On 🤘</option><option value="ok_sign">OK Sign 👌</option><option value="open_palm">Open Palm ✋</option><option value="fist">Fist ✊</option></optgroup>
+                                <optgroup label="Specific Pinches"><option value="pinch_index">Index Pinch</option><option value="pinch_middle">Middle Pinch</option><option value="pinch_ring">Ring Pinch</option><option value="pinch_pinky">Pinky Pinch</option></optgroup>
+                                <optgroup label="Dynamic Movement"><option value="swipe_left">Swipe Left</option><option value="swipe_right">Swipe Right</option><option value="swipe_up">Swipe Up</option><option value="swipe_down">Swipe Down</option><option value="poke_forward">Poke Forward</option><option value="pull_back">Pull Back</option></optgroup>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase">2. Assign Hand</span>
+                            <select id="new-hand" class="bg-white border border-[#E8DCC1] text-sm rounded-xl px-4 py-2.5 outline-none text-textMain w-32 font-bold focus:border-copper transition-colors">
+                                <option value="right">Right Hand</option><option value="left">Left Hand</option><option value="">Any Hand</option>
+                            </select>
+                        </div>
+                        <button onclick="addNewMapping()" class="primary-btn px-8 py-3 rounded-xl text-sm font-bold mt-5 ml-auto shadow-lg shadow-copper/10">+ Create Link</button>
+                    </div>
+                </div>
+                <div class="panel p-8 flex flex-col min-h-[400px]">
+                    <div class="flex justify-between items-center mb-6">
+                        <div><p class="mono text-[10px] tracking-[3px] text-[#c8b27d]">ACTIVE MAPPING MATRIX</p><h3 class="text-xl font-semibold mt-1">Configure Actions</h3></div>
+                        <span class="bg-sage/20 text-copperDark text-[10px] font-bold px-3 py-1 rounded-full border border-sage/50">HOT-RELOAD ENABLED</span>
+                    </div>
+                    <div id="gestures-list" class="space-y-3"></div>
+                </div>
             </div>
 
-            <div onclick="openSelector('fist')" class="gesture-card p-6 rounded-lg group">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pose</p>
-                <h3 class="heading text-lg font-medium mb-1">Fist</h3>
-                <p id="label-fist" class="text-[10px] text-zinc-400 font-light truncate">--</p>
+            <!-- Tab 3: Logs -->
+            <div id="tab-logs" class="tab-content hidden flex flex-col gap-6 h-full">
+                <div class="panel p-8 flex flex-col h-full">
+                    <div class="flex justify-between items-center mb-8">
+                        <div><p class="mono text-[10px] tracking-[3px] text-[#c8b27d]">AUDIT TRAIL</p><h3 class="text-2xl font-semibold mt-1">Session Intelligence Logs</h3></div>
+                        <button onclick="clearLogs()" class="px-4 py-2 border border-red-200 text-red-500 text-xs font-bold rounded-xl hover:bg-red-50 transition-colors uppercase tracking-widest">Clear History</button>
+                    </div>
+                    <div class="flex-1 overflow-hidden flex flex-col border border-borderSubtle rounded-3xl bg-[#FDFBF7]/50">
+                        <div class="grid grid-cols-5 gap-4 px-8 py-4 border-b border-borderSubtle bg-white font-bold text-[10px] uppercase tracking-[2px] text-gray-400">
+                            <span>Timestamp</span><span>Origin</span><span>Gesture Identity</span><span>Confidence</span><span>Action Executed</span>
+                        </div>
+                        <div id="detailed-logs-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+                    </div>
+                </div>
             </div>
 
-            <div onclick="openSelector('victory')" class="gesture-card p-6 rounded-lg group">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pose</p>
-                <h3 class="heading text-lg font-medium mb-1">Victory</h3>
-                <p id="label-victory" class="text-[10px] text-zinc-400 font-light truncate">--</p>
-            </div>
-
-            <div onclick="openSelector('open_palm')" class="gesture-card p-6 rounded-lg group">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Pose</p>
-                <h3 class="heading text-lg font-medium mb-1">Palm</h3>
-                <p id="label-open_palm" class="text-[10px] text-zinc-400 font-light truncate">--</p>
-            </div>
-
-            <div class="gesture-card p-6 rounded-lg opacity-40 grayscale border-dashed">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Feature</p>
-                <h3 class="heading text-lg font-medium mb-1">Clutch</h3>
-                <p class="text-[10px] text-zinc-400 font-light">Tuck Thumb</p>
-            </div>
-        </section>
-
-        <!-- Footer -->
-        <footer class="mt-auto pt-12 border-t border-zinc-900 flex justify-between items-center text-[10px] text-zinc-600 uppercase tracking-widest">
-            <p>© 2026 BuildAtScale. v2.1.0</p>
-            <p>Ready for input</p>
-        </footer>
-    </main>
-
-    <!-- Side Action Pane (The "Layered" Selector) -->
-    <div id="selector-pane" class="action-pane fixed top-0 right-0 h-full w-[400px] z-50 flex flex-col shadow-2xl">
-        <div class="p-10 flex justify-between items-center border-bottom border-zinc-900">
-            <div>
-                <h2 id="current-gesture-name" class="heading text-xl font-medium">Select Action</h2>
-                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Layer 1: Category</p>
-            </div>
-            <button onclick="closeSelector()" class="text-zinc-500 hover:text-white transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-
-        <!-- Layer 1: Categories -->
-        <div id="layer-categories" class="flex-grow overflow-y-auto">
-            <div onclick="showLayer('clicks')" class="layered-item">
-                <span class="text-sm font-medium">Mouse Clicks</span>
-                <span class="badge">L, R, M</span>
-            </div>
-            <div onclick="showLayer('editing')" class="layered-item">
-                <span class="text-sm font-medium">Productivity & Editing</span>
-                <span class="badge">Copy, Paste...</span>
-            </div>
-            <div onclick="showLayer('media')" class="layered-item">
-                <span class="text-sm font-medium">Media & Audio</span>
-                <span class="badge">Vol, Play...</span>
-            </div>
-            <div onclick="showLayer('browser')" class="layered-item">
-                <span class="text-sm font-medium">Web & Navigation</span>
-                <span class="badge">Tabs, Back...</span>
-            </div>
-            <div onclick="showLayer('system')" class="layered-item">
-                <span class="text-sm font-medium">System Control</span>
-                <span class="badge">Win, Task...</span>
+            <!-- Tab 4: Calibration -->
+            <div id="tab-calibration" class="tab-content hidden flex flex-col gap-6">
+                <div class="panel p-8">
+                    <p class="mono text-[10px] tracking-[3px] text-[#c8b27d]">HARDWARE</p><h3 class="text-2xl font-semibold mt-1 mb-8">System Calibration</h3>
+                    <div class="space-y-8">
+                        <div class="soft-panel p-6 bg-[#FDFBF7] border border-[#E8DCC1]">
+                            <div class="flex justify-between items-center mb-4">
+                                <div><h4 class="font-semibold text-sm">Kinematic Smoothing</h4><p class="text-xs text-textMuted mt-1">Adjust the 1€ Filter cutoff frequency.</p></div>
+                                <span id="smooth-val" class="font-mono font-bold text-copperDark bg-white px-3 py-1 border border-[#E8DCC1] rounded-lg">7</span>
+                            </div>
+                            <input type="range" min="1" max="20" value="7" id="smooth-slider" oninput="updateSetting('smoothing', this.value)" class="w-full h-1.5 bg-[#E8DCC1] rounded-lg appearance-none cursor-pointer accent-copper">
+                        </div>
+                        <div class="soft-panel p-6 bg-[#FDFBF7] border border-[#E8DCC1]">
+                            <h4 class="font-semibold text-sm mb-4">Active Sensor ID</h4>
+                            <select id="cam-select" onchange="updateSetting('camera_id', this.value)" class="bg-white border border-[#E8DCC1] text-sm rounded-xl px-4 py-2 outline-none text-textMain w-full max-w-xs focus:border-copper transition-colors">
+                                <option value="0">Default Camera (0)</option><option value="1">External Camera (1)</option><option value="2">Virtual Camera (2)</option>
+                            </select>
+                        </div>
+                        <div class="soft-panel p-6 bg-[#FDFBF7] border border-[#E8DCC1]">
+                            <div class="flex justify-between items-center mb-4">
+                                <div><h4 class="font-semibold text-sm">Detection Confidence</h4><p class="text-xs text-textMuted mt-1">Minimum confidence for hand detection.</p></div>
+                                <span id="det-con-val" class="font-mono font-bold text-copperDark bg-white px-3 py-1 border border-[#E8DCC1] rounded-lg">0.8</span>
+                            </div>
+                            <input type="range" min="0.1" max="1.0" step="0.1" value="0.8" id="det-con-slider" oninput="updateSetting('detection_confidence', this.value)" class="w-full h-1.5 bg-[#E8DCC1] rounded-lg appearance-none cursor-pointer accent-copper">
+                        </div>
+                        <div class="soft-panel p-6 bg-[#FDFBF7] border border-[#E8DCC1]">
+                            <div class="flex justify-between items-center mb-4">
+                                <div><h4 class="font-semibold text-sm">Tracking Confidence</h4><p class="text-xs text-textMuted mt-1">Minimum confidence for landmark tracking.</p></div>
+                                <span id="track-con-val" class="font-mono font-bold text-copperDark bg-white px-3 py-1 border border-[#E8DCC1] rounded-lg">0.8</span>
+                            </div>
+                            <input type="range" min="0.1" max="1.0" step="0.1" value="0.8" id="track-con-slider" oninput="updateSetting('tracking_confidence', this.value)" class="w-full h-1.5 bg-[#E8DCC1] rounded-lg appearance-none cursor-pointer accent-copper">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Layer 2: Specifics -->
-        <div id="layer-clicks" class="hidden flex-grow overflow-y-auto">
-            <div onclick="goBack()" class="layer-back-btn">Back</div>
-            <div onclick="applyAction('click', 'left')" class="layered-item">Left Click</div>
-            <div onclick="applyAction('click', 'right')" class="layered-item">Right Click</div>
-            <div onclick="applyAction('click', 'middle')" class="layered-item">Middle Click</div>
-        </div>
-
-        <div id="layer-editing" class="hidden flex-grow overflow-y-auto">
-            <div onclick="goBack()" class="layer-back-btn">Back</div>
-            <div onclick="applyAction('hotkey', 'ctrl,c')" class="layered-item">Copy <span class="badge">Ctrl+C</span></div>
-            <div onclick="applyAction('hotkey', 'ctrl,v')" class="layered-item">Paste <span class="badge">Ctrl+V</span></div>
-            <div onclick="applyAction('hotkey', 'ctrl,x')" class="layered-item">Cut <span class="badge">Ctrl+X</span></div>
-            <div onclick="applyAction('hotkey', 'ctrl,z')" class="layered-item">Undo <span class="badge">Ctrl+Z</span></div>
-            <div onclick="applyAction('hotkey', 'ctrl,y')" class="layered-item">Redo <span class="badge">Ctrl+Y</span></div>
-            <div onclick="applyAction('hotkey', 'ctrl,s')" class="layered-item">Save <span class="badge">Ctrl+S</span></div>
-            <div onclick="applyAction('hotkey', 'ctrl,a')" class="layered-item">Select All <span class="badge">Ctrl+A</span></div>
-        </div>
-
-        <div id="layer-media" class="hidden flex-grow overflow-y-auto">
-            <div onclick="goBack()" class="layer-back-btn">Back</div>
-            <div onclick="applyAction('press', 'playpause')" class="layered-item">Play / Pause</div>
-            <div onclick="applyAction('press', 'volumeup')" class="layered-item">Volume Up</div>
-            <div onclick="applyAction('press', 'volumedown')" class="layered-item">Volume Down</div>
-            <div onclick="applyAction('press', 'volumemute')" class="layered-item">Mute</div>
-            <div onclick="applyAction('press', 'nexttrack')" class="layered-item">Next Track</div>
-            <div onclick="applyAction('press', 'prevtrack')" class="layered-item">Previous Track</div>
-        </div>
-
-        <div id="layer-browser" class="hidden flex-grow overflow-y-auto">
-            <div onclick="goBack()" class="layer-back-btn">Back</div>
-            <div onclick="applyAction('hotkey', 'ctrl,t')" class="layered-item">New Tab <span class="badge">Ctrl+T</span></div>
-            <div onclick="applyAction('hotkey', 'ctrl,w')" class="layered-item">Close Tab <span class="badge">Ctrl+W</span></div>
-            <div onclick="applyAction('hotkey', 'ctrl,tab')" class="layered-item">Next Tab</div>
-            <div onclick="applyAction('hotkey', 'alt,left')" class="layered-item">Go Back</div>
-            <div onclick="applyAction('hotkey', 'alt,right')" class="layered-item">Go Forward</div>
-            <div onclick="applyAction('press', 'f5')" class="layered-item">Refresh Page</div>
-        </div>
-
-        <div id="layer-system" class="hidden flex-grow overflow-y-auto">
-            <div onclick="goBack()" class="layer-back-btn">Back</div>
-            <div onclick="applyAction('hotkey', 'win,d')" class="layered-item">Show Desktop <span class="badge">Win+D</span></div>
-            <div onclick="applyAction('hotkey', 'alt,tab')" class="layered-item">Switch App <span class="badge">Alt+Tab</span></div>
-            <div onclick="applyAction('hotkey', 'win,tab')" class="layered-item">Task View <span class="badge">Win+Tab</span></div>
-            <div onclick="applyAction('hotkey', 'alt,f4')" class="layered-item">Close Window <span class="badge">Alt+F4</span></div>
-            <div onclick="applyAction('hotkey', 'win,l')" class="layered-item">Lock PC <span class="badge">Win+L</span></div>
-            <div onclick="applyAction('press', 'pageup')" class="layered-item">Page Up</div>
-            <div onclick="applyAction('press', 'pagedown')" class="layered-item">Page Down</div>
-        </div>
-
-        <div class="p-10 border-t border-zinc-900 bg-zinc-950 text-[10px] text-zinc-600 uppercase tracking-widest leading-relaxed">
-            Changes are applied immediately to the active control engine.
+        <!-- RIGHT SIDEBAR -->
+        <div class="h-full overflow-y-auto pb-10">
+            <div class="panel p-6">
+                <div class="flex items-center justify-between">
+                    <div><p class="mono text-[10px] tracking-[3px] text-[#c8b27d]">REVIEW ENGINE</p><h3 class="text-lg font-semibold mt-1">Post-Capture</h3></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-[#c8d3bb] pulse"></div>
+                </div>
+                <div class="mt-6 rounded-2xl overflow-hidden border border-[#E8DCC1] bg-[#FFF9EE] p-4">
+                    <div class="h-[140px] rounded-xl bg-gradient-to-br from-[#FFF5D8] to-[#F5E6C0] relative overflow-hidden flex items-center justify-center">
+                        <div class="w-[80px] h-[80px] rounded-full border-2 border-dashed border-[#D9B97A] opacity-40 animate-[spin_10s_linear_infinite]"></div>
+                        <div id="capture-indicator" class="absolute w-3 h-3 rounded-full bg-[#D9B97A] shadow-[0_0_15px_rgba(217,185,122,0.8)] transition-all duration-300"></div>
+                    </div>
+                    <div class="mt-5 space-y-3 text-sm">
+                        <div class="flex justify-between border-b border-borderSubtle/50 pb-2"><span class="text-gray-500">Last Detection</span><span id="last-gesture-name" class="font-semibold text-textMain">Waiting...</span></div>
+                        <div class="flex justify-between border-b border-borderSubtle/50 pb-2"><span class="text-gray-500">Confidence</span><span class="font-mono text-[#9B8D73] font-bold">99.2%</span></div>
+                        <div class="flex justify-between items-center pt-1"><span class="text-gray-500">Status</span><span class="status px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">Active</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel p-6 mt-6 bg-[#1A1D1E] text-white">
+                <p class="mono text-[10px] tracking-[3px] text-gray-500 mb-4">NEURAL RECORDING</p>
+                <p class="text-sm text-gray-300 mb-6 leading-relaxed">Select a gesture in the Matrix and click Capture to seamlessly bind complex macros.</p>
+                <div id="record-ui" class="hidden flex flex-col items-center justify-center p-6 border border-gray-700 rounded-xl bg-black/30">
+                    <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mb-4"><div class="w-4 h-4 rounded-full bg-red-500 animate-ping"></div></div>
+                    <p class="text-xs font-mono text-gray-400">LISTENING FOR INPUT...</p>
+                    <p id="record-target" class="text-sm font-bold text-white mt-2">Target</p>
+                    <button onclick="stopCapture()" class="mt-6 text-[10px] text-gray-500 hover:text-white uppercase tracking-widest transition-colors">Abort</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        let selectedGesture = null;
-        let config = {};
-
-        async function loadConfig() {
-            const res = await fetch('/get_config');
-            const data = await res.json();
-            config = data;
+        let currentConfig = null; let isEngineRunning = false; let recordingFor = null;
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + id).classList.remove('hidden');
+            document.querySelectorAll('.nav-link').forEach(el => { el.classList.remove('bg-white', 'shadow-sm', 'text-textMain'); el.classList.add('text-textMuted'); });
+            const activeBtn = document.getElementById('nav-' + id); if (activeBtn) { activeBtn.classList.remove('text-textMuted'); activeBtn.classList.add('bg-white', 'shadow-sm', 'text-textMain'); }
+        }
+        async function fetchConfig() {
+            const res = await fetch('/config'); currentConfig = await res.json();
+            document.getElementById('smooth-val').innerText = currentConfig.settings.smoothing;
+            document.getElementById('smooth-slider').value = currentConfig.settings.smoothing;
+            document.getElementById('cam-select').value = currentConfig.settings.camera_id;
             
-            // Update labels
-            for (const [gesture, mapping] of Object.entries(data.mappings)) {
-                const el = document.getElementById(`label-${gesture}`);
-                if (el) {
-                    if (mapping.action === 'click') el.innerText = `${mapping.button.charAt(0).toUpperCase() + mapping.button.slice(1)} Click`;
-                    else if (mapping.action === 'hotkey') el.innerText = mapping.keys.join(' + ').toUpperCase();
-                    else el.innerText = mapping.key.toUpperCase();
-                }
+            if (currentConfig.settings.detection_confidence) {
+                document.getElementById('det-con-val').innerText = currentConfig.settings.detection_confidence;
+                document.getElementById('det-con-slider').value = currentConfig.settings.detection_confidence;
             }
+            if (currentConfig.settings.tracking_confidence) {
+                document.getElementById('track-con-val').innerText = currentConfig.settings.tracking_confidence;
+                document.getElementById('track-con-slider').value = currentConfig.settings.tracking_confidence;
+            }
+            
+            renderGestures();
         }
-
-        function openSelector(gesture) {
-            selectedGesture = gesture;
-            document.getElementById('current-gesture-name').innerText = gesture.replace('_', ' ').toUpperCase();
-            document.getElementById('selector-pane').classList.add('open');
-            goBack(); // Reset to category view
-        }
-
-        function closeSelector() {
-            document.getElementById('selector-pane').classList.remove('open');
-        }
-
-        function showLayer(layerId) {
-            document.getElementById('layer-categories').classList.add('hidden');
-            document.getElementById(`layer-${layerId}`).classList.remove('hidden');
-        }
-
-        function goBack() {
-            ['clicks', 'scroll', 'macros'].forEach(l => {
-                document.getElementById(`layer-${l}`).classList.add('hidden');
+        function renderGestures() {
+            const list = document.getElementById('gestures-list'); list.innerHTML = '';
+            Object.entries(currentConfig.mappings).forEach(([name, config], i) => {
+                const row = document.createElement('div'); row.className = "flex items-center gap-4 p-4 bg-[#FDFBF7] border border-[#E8DCC1] rounded-2xl hover:shadow-md transition-all group relative";
+                row.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-white border border-[#E8DCC1] flex items-center justify-center shadow-sm"><span class="text-[10px] text-copperDark font-mono font-bold">${String(i+1)}</span></div>
+                    <span class="w-40 font-bold text-sm text-textMain uppercase tracking-tight truncate">${name.replace(/_/g, ' ')}</span>
+                    <select onchange="updateMapping('${name}', 'action', this.value)" class="bg-white border border-[#E8DCC1] text-xs font-semibold rounded-lg px-3 py-2 outline-none text-textMain focus:border-copper transition-colors">
+                        <option value="click" ${config.action === 'click' ? 'selected' : ''}>CLICK</option>
+                        <option value="hotkey" ${config.action === 'hotkey' ? 'selected' : ''}>HOTKEY</option>
+                        <option value="press" ${config.action === 'press' ? 'selected' : ''}>PRESS</option>
+                        <option value="scroll" ${config.action === 'scroll' ? 'selected' : ''}>SCROLL</option>
+                        <option value="drag" ${config.action === 'drag' ? 'selected' : ''}>DRAG</option>
+                    </select>
+                    <input type="text" value="${config.button || (config.keys ? config.keys.join(',') : config.key) || config.amount || ''}" onchange="updateMapping('${name}', 'value', this.value)" class="flex-1 bg-white border border-[#E8DCC1] text-sm font-mono rounded-lg px-4 py-2 outline-none text-textMain focus:border-copper transition-colors placeholder:text-gray-300" placeholder="Empty">
+                    <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="startCapture('${name}')" class="capture-btn px-4 py-2 text-[10px] font-bold rounded-lg uppercase tracking-wider">Capture</button>
+                        <button onclick="deleteMapping('${name}')" class="px-3 py-2 bg-red-50 text-red-500 border border-red-100 rounded-lg hover:bg-red-500 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    </div>`;
+                list.appendChild(row);
             });
-            document.getElementById('layer-categories').classList.remove('hidden');
         }
-
-        async function applyAction(type, value) {
-            const mapping = { action: type };
-            if (type === 'click') mapping.button = value;
-            else if (type === 'hotkey') mapping.keys = value.split(',');
-            else if (type === 'press') mapping.key = value;
-
-            config.mappings[selectedGesture] = mapping;
-
-            await fetch('/update_config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config)
-            });
-
-            await loadConfig();
-            closeSelector();
+        async function addNewMapping() {
+            const base = document.getElementById('new-base-gesture').value; const hand = document.getElementById('new-hand').value; const fullName = hand ? `${base}_${hand}` : base;
+            if (currentConfig.mappings[fullName]) { alert(`Error: A mapping for ${fullName.replace(/_/g, ' ')} already exists.`); return; }
+            currentConfig.mappings[fullName] = { "action": "press", "key": "space" }; await saveConfig(); renderGestures(); addTimelineEvent("New Neural Link", `Created entry for ${fullName.replace(/_/g, ' ')}`, "#D9B97A");
         }
+        async function deleteMapping(gesture) {
+            if (confirm(`Are you sure you want to remove the mapping for ${gesture.replace(/_/g, ' ')}?`)) { delete currentConfig.mappings[gesture]; await saveConfig(); renderGestures(); addTimelineEvent("Link Removed", `Deleted mapping for ${gesture.replace(/_/g, ' ')}`, "#E63946"); }
+        }
+        async function updateMapping(gesture, field, value) {
+            if (field === 'action') currentConfig.mappings[gesture].action = value;
+            else if (field === 'value') {
+                const action = currentConfig.mappings[gesture].action;
+                if (action === 'click' || action === 'drag') currentConfig.mappings[gesture].button = value;
+                else if (action === 'hotkey') currentConfig.mappings[gesture].keys = value.split(',').map(k => k.trim());
+                else if (action === 'scroll') currentConfig.mappings[gesture].amount = parseInt(value);
+                else if (action === 'press') currentConfig.mappings[gesture].key = value;
+            }
+            saveConfig();
+        }
+        async function updateSetting(key, val) { 
+            currentConfig.settings[key] = (key.includes('confidence')) ? parseFloat(val) : parseInt(val); 
+            if (key === 'smoothing') document.getElementById('smooth-val').innerText = val; 
+            if (key === 'detection_confidence') document.getElementById('det-con-val').innerText = val;
+            if (key === 'tracking_confidence') document.getElementById('track-con-val').innerText = val;
+            saveConfig(); 
+        }
+        async function saveConfig() { await fetch('/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentConfig) }); }
+        async function toggleEngine() {
+            const btn = document.getElementById('toggle-btn'); const dot = document.getElementById('status-dot'); const statusTxt = document.getElementById('status-text'); const feed = document.getElementById('video-feed'); const placeholder = document.getElementById('feed-placeholder');
+            const res = await fetch('/engine/toggle', { method: 'POST' }); const data = await res.json();
+            if (data.status === 'started') { isEngineRunning = true; btn.innerHTML = "Terminate Sensor"; btn.classList.add('stop-btn'); btn.classList.remove('primary-btn'); dot.className = "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"; statusTxt.innerText = "Active"; feed.src = "/video_feed"; feed.classList.remove('hidden'); placeholder.classList.add('hidden'); addTimelineEvent("Bio-Link Established", "Connection secured to local hardware.", "#c8d3bb"); }
+            else { isEngineRunning = false; btn.innerHTML = "Initialize Sensor"; btn.classList.remove('stop-btn'); btn.classList.add('primary-btn'); dot.className = "w-3 h-3 rounded-full bg-red-400"; statusTxt.innerText = "Offline"; feed.src = ""; feed.classList.add('hidden'); placeholder.classList.remove('hidden'); addTimelineEvent("Sensor Terminated", "Hardware link disconnected.", "#E63946"); }
+        }
+        function addTimelineEvent(title, desc, color="#D9B97A") {
+            const container = document.getElementById('log-container'); const timeStr = new Date().toLocaleTimeString('en-US', {hour12:false});
+            const html = `<div class="flex gap-4 items-start animate-in fade-in slide-in-from-left duration-300"><div class="w-2.5 h-2.5 rounded-full mt-1.5 shadow-sm" style="background-color: ${color}"></div><div><p class="text-[10px] text-copperDark mono">${timeStr}</p><h4 class="font-bold text-sm text-textMain mt-0.5">${title}</h4><p class="text-textMuted text-xs mt-1 leading-relaxed">${desc}</p></div></div>`;
+            container.insertAdjacentHTML('afterbegin', html);
+        }
+        function addLogEntry(handedness, gesture, action) {
+            const container = document.getElementById('detailed-logs-list'); const timeStr = new Date().toLocaleTimeString('en-US', {hour12:false});
+            const html = `<div class="grid grid-cols-5 gap-4 px-8 py-3 bg-white border border-borderSubtle/50 rounded-2xl items-center animate-in fade-in slide-in-from-top duration-300"><span class="mono text-[10px] text-gray-400">${timeStr}</span><span class="text-[10px] font-bold ${handedness === 'Right' ? 'text-sage' : 'text-copperDark'} uppercase tracking-widest">${handedness}</span><span class="text-xs font-bold text-textMain">${gesture.replace(/_/g, ' ').toUpperCase()}</span><span class="mono text-[10px] text-green-600 font-bold">99.4%</span><span class="text-[10px] bg-bgMain px-2 py-1 rounded-lg border border-borderSubtle text-gray-500 mono truncate">${JSON.stringify(action)}</span></div>`;
+            container.insertAdjacentHTML('afterbegin', html);
+        }
+        function clearLogs() { if(confirm("Permanently wipe session intelligence history?")) { document.getElementById('detailed-logs-list').innerHTML = ''; addTimelineEvent("History Wiped", "Session intelligence logs cleared.", "#E63946"); } }
+        const evtSource = new EventSource("/events");
+        evtSource.onmessage = (e) => {
+            const msg = e.data;
+            if(msg.includes("TRIGGER:")) {
+                const gestureFull = msg.split(":")[1].trim().toLowerCase(); const parts = gestureFull.split('_'); const hand = parts.pop(); const gesture = parts.join('_'); const handedness = hand.charAt(0).toUpperCase() + hand.slice(1); const action = currentConfig.mappings[gestureFull] || {};
+                addTimelineEvent("Gesture Captured", `${handedness} hand recognized as ${gesture.replace(/_/g, ' ')}`, "#D9B97A");
+                addLogEntry(handedness, gesture, action);
+                document.getElementById('last-gesture-name').innerText = gesture.replace(/_/g, ' ').toUpperCase();
+                const ind = document.getElementById('capture-indicator'); ind.style.transform = `translate(${(Math.random()-0.5)*40}px, ${(Math.random()-0.5)*40}px) scale(1.5)`; setTimeout(() => ind.style.transform = 'translate(0,0) scale(1)', 300);
+            } else { addTimelineEvent("System Event", msg, "#c8d3bb"); }
+        };
+        function startCapture(gesture) { recordingFor = gesture; document.getElementById('record-ui').classList.remove('hidden'); document.getElementById('record-target').innerText = gesture.replace(/_/g, ' ').toUpperCase(); window.addEventListener('keydown', handleKeyCapture); }
+        function stopCapture() { recordingFor = null; document.getElementById('record-ui').classList.add('hidden'); window.removeEventListener('keydown', handleKeyCapture); }
+        function handleKeyCapture(e) { e.preventDefault(); let key = e.key.toLowerCase(); const map = {"control": "ctrl", " ": "space", "escape": "esc", "arrowup": "up", "arrowdown": "down", "meta": "win"}; key = map[key] || key; updateMapping(recordingFor, 'action', 'press'); updateMapping(recordingFor, 'value', key); renderGestures(); stopCapture(); addTimelineEvent("Macro Bound", `Mapped ${key.toUpperCase()} to ${recordingFor.replace(/_/g, ' ')}`, "#c8d3bb"); }
+        fetchConfig();
 
-        loadConfig();
+        // Heartbeat logic to stop backend when tab closes
+        setInterval(async () => {
+            try {
+                await fetch('/heartbeat', { method: 'POST' });
+            } catch (e) {
+                console.log("Heartbeat failed, server might be down.");
+            }
+        }, 2000);
     </script>
 </body>
 </html>

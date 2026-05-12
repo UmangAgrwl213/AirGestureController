@@ -1,253 +1,401 @@
 import customtkinter as ctk
 import json
 import os
-import subprocess
 import sys
+import cv2
+import time
+import numpy as np
+from PIL import Image, ImageTk, ImageDraw, ImageFilter
 from tkinter import messagebox
+from modules.engine import GestureEngine
 
-# Set appearance and theme
-ctk.set_appearance_mode("Dark")
-ctk.set_default_color_theme("blue")
-
-# --- Standard Build Presets ---
-PRESETS = {
-    "Mouse: Left Click": {"action": "click", "button": "left"},
-    "Mouse: Right Click": {"action": "click", "button": "right"},
-    "Mouse: Middle Click": {"action": "click", "button": "middle"},
-    "System: Show Desktop": {"action": "hotkey", "keys": ["win", "d"]},
-    "System: Switch Window": {"action": "hotkey", "keys": ["alt", "tab"]},
-    "Media: Play/Pause": {"action": "press", "key": "playpause"},
-    "Media: Next Track": {"action": "press", "key": "nexttrack"},
-    "Media: Prev Track": {"action": "press", "key": "prevtrack"},
-    "Media: Volume Up": {"action": "press", "key": "volumeup"},
-    "Media: Volume Down": {"action": "press", "key": "volumedown"},
-    "Clipboard: Copy": {"action": "hotkey", "keys": ["ctrl", "c"]},
-    "Clipboard: Paste": {"action": "hotkey", "keys": ["ctrl", "v"]},
+# --- HIGH-FIDELITY DESIGN TOKENS (The "A" Tier) ---
+COLORS = {
+    "background": "#08090A",       # Absolute Matte Obsidian
+    "sidebar": "#040506",          # Deepest Black
+    "surface": "#121417",          # Slightly elevated surface
+    "surface_glass": "#1A1D21",    # Glassmorphism base
+    "accent_primary": "#A8C3B0",   # Premium Desaturated Sage
+    "accent_secondary": "#D4A373", # Brushed Copper
+    "accent_glow": "#4C6B5F",      # Deep accent glow
+    "text_h1": "#FFFFFF",
+    "text_body": "#9BA3AF",
+    "border_subtle": "#21262D",
+    "status_active": "#52B788",
+    "status_error": "#E63946"
 }
 
-class MacroPopup(ctk.CTkToplevel):
-    def __init__(self, parent, mappings, save_callback):
-        super().__init__(parent)
-        self.title("Gesture Macro Settings")
-        self.geometry("750x650")
-        self.parent = parent
-        self.mappings = mappings
-        self.save_callback = save_callback
-        self.recording_for = None
-        
-        self.gestures = [
-            "pinch_index", "pinch_middle", "pinch_ring", "pinch_pinky", 
-            "fist", "victory", "open_palm"
-        ]
-        
+# Layout constants for the "Rhythm"
+P_SM = 8
+P_MD = 16
+P_LG = 32
+RADIUS = 12
+
+class GlassCard(ctk.CTkFrame):
+    """Custom high-fidelity card with simulated glassmorphism and subtle lighting."""
+    def __init__(self, parent, title="", **kwargs):
+        super().__init__(parent, fg_color=COLORS["surface"], 
+                         border_color=COLORS["border_subtle"], border_width=1, 
+                         corner_radius=RADIUS, **kwargs)
+        if title:
+            header_frame = ctk.CTkFrame(self, fg_color="transparent")
+            header_frame.pack(fill="x", padx=P_MD, pady=(P_MD, 0))
+            
+            # Subtle accent indicator
+            ctk.CTkLabel(header_frame, text="┃", text_color=COLORS["accent_primary"], 
+                          font=("Consolas", 18, "bold")).pack(side="left")
+            
+            self.title_label = ctk.CTkLabel(header_frame, text=title.upper(), 
+                                            font=("Rajdhani", 14, "bold") if sys.platform != "win32" else ("Consolas", 12, "bold"),
+                                            text_color=COLORS["text_h1"])
+            self.title_label.pack(side="left", padx=P_SM)
+
+class DashboardPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, fg_color="transparent")
+        self.controller = controller
         self.setup_ui()
-        self.attributes("-topmost", True)
-        self.bind("<Key>", self.on_key_press)
+
+    def setup_ui(self):
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        self.container = ctk.CTkFrame(self, fg_color="transparent")
+        self.container.grid(row=0, column=0, sticky="nsew", padx=P_LG, pady=P_LG)
+        self.container.grid_columnconfigure(0, weight=3)
+        self.container.grid_columnconfigure(1, weight=1)
+        self.container.grid_rowconfigure(0, weight=3)
+        self.container.grid_rowconfigure(1, weight=1)
+
+        # 1. Main View (Sensor Analytics)
+        self.monitor_card = GlassCard(self.container, title="Sensor Stream Matrix")
+        self.monitor_card.grid(row=0, column=0, sticky="nsew", padx=(0, P_MD), pady=(0, P_MD))
+        
+        self.cam_label = ctk.CTkLabel(self.monitor_card, text="AWAITING SYSTEM INITIALIZATION...", 
+                                       font=("Consolas", 14), text_color=COLORS["text_body"])
+        self.cam_label.pack(expand=True, fill="both", padx=P_MD, pady=P_MD)
+
+        # 2. Control Module
+        self.ctrl_card = GlassCard(self.container, title="Neural Engine Link")
+        self.ctrl_card.grid(row=0, column=1, sticky="nsew", pady=(0, P_MD))
+
+        # Status readout
+        self.status_frame = ctk.CTkFrame(self.ctrl_card, fg_color="#0A0B0D", corner_radius=6)
+        self.status_frame.pack(fill="x", padx=P_MD, pady=P_MD)
+        
+        self.status_dot = ctk.CTkLabel(self.status_frame, text="●", text_color=COLORS["status_error"], font=("Consolas", 20))
+        self.status_dot.pack(side="left", padx=(12, 8), pady=12)
+        
+        self.status_text = ctk.CTkLabel(self.status_frame, text="LINK_OFFLINE", 
+                                         font=("Consolas", 12, "bold"), text_color=COLORS["text_h1"])
+        self.status_text.pack(side="left", pady=12)
+
+        self.launch_btn = ctk.CTkButton(self.ctrl_card, text="CONNECT BIO-LINK", 
+                                        command=self.controller.toggle_engine, 
+                                        height=60, corner_radius=RADIUS, 
+                                        fg_color=COLORS["accent_primary"],
+                                        text_color=COLORS["sidebar"],
+                                        hover_color=COLORS["accent_glow"],
+                                        font=("Consolas", 14, "bold"))
+        self.launch_btn.pack(fill="x", padx=P_MD, pady=P_MD)
+
+        # 3. Log Module (The Bottom "Drawer")
+        self.log_card = GlassCard(self.container, title="Real-Time Analytics")
+        self.log_card.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        
+        self.log_text = ctk.CTkTextbox(self.log_card, font=("Consolas", 11), 
+                                        fg_color="transparent", text_color=COLORS["accent_primary"])
+        self.log_text.pack(fill="both", expand=True, padx=P_MD, pady=P_SM)
+        self.log_text.insert("end", ">> SYSTEM::READY_FOR_BIO_LINK\n")
+        self.log_text.configure(state="disabled")
+
+    def log(self, message):
+        def type_text(msg, idx=0):
+            if idx < len(msg):
+                self.log_text.configure(state="normal")
+                self.log_text.insert("end", msg[idx])
+                self.log_text.see("end")
+                self.log_text.configure(state="disabled")
+                self.after(5, lambda: type_text(msg, idx + 1))
+        type_text(f">> {message}\n")
+
+class GesturesPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, fg_color="transparent")
+        self.controller = controller
+        
+        base_gestures = [
+            "pinch_index", "pinch_middle", "pinch_ring", "pinch_pinky", 
+            "fist", "victory", "open_palm", "swipe_left", "swipe_right", 
+            "swipe_up", "swipe_down", "poke_forward", "pull_back"
+        ]
+        self.gestures = []
+        for g in base_gestures:
+            self.gestures.append(f"{g}_right")
+            self.gestures.append(f"{g}_left")
+        self.setup_ui()
 
     def setup_ui(self):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        header = ctk.CTkLabel(self, text="Configure Gesture Macros", font=ctk.CTkFont(size=24, weight="bold"))
-        header.grid(row=0, column=0, pady=20, padx=20)
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=P_LG, pady=P_LG)
+        ctk.CTkLabel(header, text="MAPPING_ARCHITECTURE", font=("Consolas", 28, "bold"), text_color=COLORS["text_h1"]).pack(side="left")
+        
+        self.matrix_card = GlassCard(self, title="Macro Definitions")
+        self.matrix_card.grid(row=1, column=0, sticky="nsew", padx=P_LG, pady=(0, P_LG))
 
-        # Scrollable frame
-        self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Gesture Assignment Table")
-        self.scroll_frame.grid(row=1, column=0, sticky="nsew", padx=25, pady=(0, 10))
-        self.scroll_frame.grid_columnconfigure(1, weight=0) # Action
-        self.scroll_frame.grid_columnconfigure(2, weight=1) # Value
-        self.scroll_frame.grid_columnconfigure(3, weight=0) # Record
-        self.scroll_frame.grid_columnconfigure(4, weight=0) # Presets
+        self.scroll_frame = ctk.CTkScrollableFrame(self.matrix_card, fg_color="transparent")
+        self.scroll_frame.pack(fill="both", expand=True, padx=P_SM, pady=P_SM)
+        self.scroll_frame.grid_columnconfigure(2, weight=1)
 
         self.ui_elements = {}
-
         for i, gesture in enumerate(self.gestures):
-            name = gesture.replace("_", " ").title()
-            
-            # Gesture Name
-            ctk.CTkLabel(self.scroll_frame, text=name, font=ctk.CTkFont(size=13, weight="bold"), width=100).grid(row=i, column=0, padx=10, pady=15, sticky="w")
+            name = gesture.replace("_", " ").upper()
+            row = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
+            row.grid(row=i, column=0, columnspan=6, sticky="ew", pady=2)
+            row.grid_columnconfigure(2, weight=1)
 
-            # Action Selection
-            current_config = self.mappings.get(gesture, {"action": "click", "button": "left"})
-            action_var = ctk.StringVar(value=current_config.get("action", "click"))
-            action_cb = ctk.CTkComboBox(self.scroll_frame, values=["click", "hotkey", "press"], 
-                                         variable=action_var, width=90)
-            action_cb.grid(row=i, column=1, padx=5, pady=15)
+            ctk.CTkLabel(row, text=f"{i:02d}", font=("Consolas", 10), text_color=COLORS["text_muted"]).grid(row=0, column=0, padx=10)
+            ctk.CTkLabel(row, text=name, font=("Consolas", 11, "bold"), width=180, anchor="w", text_color=COLORS["text_h1"]).grid(row=0, column=1, padx=5)
 
-            # Value Entry
-            val = ""
-            if action_var.get() == "click": val = current_config.get("button", "left")
-            elif action_var.get() == "hotkey": val = ",".join(current_config.get("keys", []))
-            elif action_var.get() == "press": val = current_config.get("key", "")
+            config = self.controller.mappings.get(gesture, {"action": "click", "button": "left"})
+            action_var = ctk.StringVar(value=config.get("action", "click"))
+            cb = ctk.CTkComboBox(row, values=["click", "hotkey", "press", "scroll", "drag"], variable=action_var, 
+                                 width=100, font=("Consolas", 11), fg_color=COLORS["sidebar"], border_color=COLORS["border_subtle"],
+                                 command=lambda _: self.controller.save_mappings())
+            cb.grid(row=0, column=2, padx=2, sticky="w")
 
-            value_var = ctk.StringVar(value=val)
-            entry = ctk.CTkEntry(self.scroll_frame, textvariable=value_var, width=150, placeholder_text="key/button")
-            entry.grid(row=i, column=2, padx=5, pady=15, sticky="ew")
+            val_var = ctk.StringVar(value=self.get_config_val(config))
+            ent = ctk.CTkEntry(row, textvariable=val_var, width=140, font=("Consolas", 11),
+                               fg_color=COLORS["sidebar"], border_color=COLORS["border_subtle"])
+            ent.grid(row=0, column=3, padx=5)
+            val_var.trace_add("write", lambda *args, g=gesture: self.controller.update_mapping_val(g, val_var.get()))
 
-            # Record Button
-            rec_btn = ctk.CTkButton(self.scroll_frame, text="⏺", width=40, height=28, 
-                                     fg_color="#34495E", hover_color="#E67E22",
+            rec_btn = ctk.CTkButton(row, text="CAPTURE", width=60, height=28, font=("Consolas", 10, "bold"), 
+                                     fg_color="transparent", border_width=1, border_color=COLORS["accent_secondary"],
+                                     text_color=COLORS["accent_secondary"], hover_color="#2A1A1A",
                                      command=lambda g=gesture: self.start_recording(g))
-            rec_btn.grid(row=i, column=3, padx=5)
+            rec_btn.grid(row=0, column=4, padx=5)
 
-            # Presets Dropdown
-            preset_var = ctk.StringVar(value="Select Preset...")
-            preset_cb = ctk.CTkComboBox(self.scroll_frame, values=list(PRESETS.keys()), 
-                                         variable=preset_var, width=160, 
-                                         command=lambda val, g=gesture: self.apply_preset(g, val))
-            preset_cb.grid(row=i, column=4, padx=5)
+            self.ui_elements[gesture] = {"action": action_var, "value": val_var, "rec_btn": rec_btn}
 
-            self.ui_elements[gesture] = {
-                "action": action_var, 
-                "value": value_var, 
-                "rec_btn": rec_btn,
-                "preset_cb": preset_cb
-            }
-
-        # Footer
-        footer = ctk.CTkFrame(self, fg_color="transparent")
-        footer.grid(row=2, column=0, pady=20)
-        
-        self.save_btn = ctk.CTkButton(footer, text="Save & Apply", command=self.save, width=200, height=45, font=ctk.CTkFont(size=15, weight="bold"))
-        self.save_btn.pack(side="left", padx=10)
-
-        self.cancel_btn = ctk.CTkButton(footer, text="Cancel", command=self.destroy, fg_color="transparent", border_width=1, width=100)
-        self.cancel_btn.pack(side="left", padx=10)
-
-    def apply_preset(self, gesture, preset_name):
-        if preset_name in PRESETS:
-            config = PRESETS[preset_name]
-            self.ui_elements[gesture]["action"].set(config["action"])
-            
-            if config["action"] == "click":
-                self.ui_elements[gesture]["value"].set(config["button"])
-            elif config["action"] == "hotkey":
-                self.ui_elements[gesture]["value"].set(",".join(config["keys"]))
-            elif config["action"] == "press":
-                self.ui_elements[gesture]["value"].set(config["key"])
-            
-            # Reset preset selection text
-            self.ui_elements[gesture]["preset_cb"].set("Select Preset...")
+    def get_config_val(self, config):
+        a = config.get("action")
+        if a == "click": return config.get("button", "left")
+        if a == "hotkey": return ",".join(config.get("keys", []))
+        return config.get("key", "")
 
     def start_recording(self, gesture):
-        # Stop previous recording if any
-        if self.recording_for:
-            self.ui_elements[self.recording_for]["rec_btn"].configure(text="⏺", fg_color="#34495E")
-        
+        if hasattr(self, 'recording_for') and self.recording_for:
+            self.ui_elements[self.recording_for]["rec_btn"].configure(text="CAPTURE", fg_color="transparent")
         self.recording_for = gesture
-        self.ui_elements[gesture]["rec_btn"].configure(text="Listening...", fg_color="#E67E22")
-        self.focus_set() # Ensure window has focus to catch key events
+        self.ui_elements[gesture]["rec_btn"].configure(text="LISTENING", fg_color="#301A10")
+        self.focus_set()
 
-    def on_key_press(self, event):
-        if self.recording_for:
-            gesture = self.recording_for
-            key_name = event.keysym.lower()
-            
-            # Simple mapping for special keys
-            mapping = {"return": "enter", "space": "space", "control_l": "ctrl", "control_r": "ctrl", "alt_l": "alt", "alt_r": "alt", "shift_l": "shift", "shift_r": "shift", "win_l": "win"}
-            key_name = mapping.get(key_name, key_name)
-            
-            self.ui_elements[gesture]["value"].set(key_name)
-            self.ui_elements[gesture]["action"].set("press") # Default to press for recorded keys
-            
-            # Reset button
-            self.ui_elements[gesture]["rec_btn"].configure(text="⏺", fg_color="#34495E")
+    def handle_keypress(self, key_name):
+        if hasattr(self, 'recording_for') and self.recording_for:
+            self.ui_elements[self.recording_for]["value"].set(key_name)
+            self.ui_elements[self.recording_for]["action"].set("press")
+            self.ui_elements[self.recording_for]["rec_btn"].configure(text="CAPTURE", fg_color="transparent")
             self.recording_for = None
+            self.controller.save_mappings()
 
-    def save(self):
-        new_mappings = {}
-        for gesture, elements in self.ui_elements.items():
-            action = elements["action"].get()
-            value = elements["value"].get().strip()
-            
-            if not value: continue
-            
-            mapping = {"action": action}
-            if action == "click":
-                mapping["button"] = value
-            elif action == "hotkey":
-                mapping["keys"] = [k.strip() for k in value.split(",")]
-            elif action == "press":
-                mapping["key"] = value
-                
-            new_mappings[gesture] = mapping
-        
-        self.save_callback(new_mappings)
-        self.destroy()
-
-class MainWindow(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("AirGesture Controller")
-        self.geometry("450x480")
-        
-        self.config_path = "config.json"
-        self.process = None
-        
+class SettingsPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, fg_color="transparent")
+        self.controller = controller
         self.setup_ui()
 
     def setup_ui(self):
         self.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(self, text="ENGINE_CALIBRATION", font=("Consolas", 28, "bold"), text_color=COLORS["text_h1"]).pack(pady=P_LG, padx=P_LG, anchor="w")
+
+        # 1€ Filter Calibration
+        card = GlassCard(self, title="Precision Physics")
+        card.pack(fill="x", padx=P_LG, pady=P_SM)
+        ctk.CTkLabel(card, text="MOTION_SMOOTHING_THRESHOLD", font=("Consolas", 11)).pack(padx=P_MD, pady=(P_MD, 0), anchor="w")
+        self.smooth_slider = ctk.CTkSlider(card, from_=1, to=20, number_of_steps=19, 
+                                          button_color=COLORS["accent_primary"],
+                                          button_hover_color=COLORS["accent_secondary"],
+                                          command=self.controller.update_smoothing)
+        self.smooth_slider.set(self.controller.current_settings.get("smoothing", 7))
+        self.smooth_slider.pack(fill="x", padx=P_MD, pady=(P_SM, P_MD))
+
+        # Hardware Sensor Selection
+        card2 = GlassCard(self, title="Hardware interface")
+        card2.pack(fill="x", padx=P_LG, pady=P_SM)
+        ctk.CTkLabel(card2, text="ACTIVE_IMAGING_SENSOR_ID", font=("Consolas", 11)).pack(padx=P_MD, pady=(P_MD, 0), anchor="w")
+        self.cam_var = ctk.StringVar(value=str(self.controller.current_settings.get("camera_id", 1)))
+        ctk.CTkComboBox(card2, values=["0", "1", "2"], variable=self.cam_var, 
+                         fg_color=COLORS["sidebar"], border_color=COLORS["border_subtle"],
+                         command=self.controller.update_camera).pack(padx=P_MD, pady=(P_SM, P_MD), anchor="w")
+
+        # Confidence Calibration
+        card3 = GlassCard(self, title="Neural Sensitivity")
+        card3.pack(fill="x", padx=P_LG, pady=P_SM)
         
-        # Header
-        self.title_label = ctk.CTkLabel(self, text="AirGesture", font=ctk.CTkFont(size=36, weight="bold"))
-        self.title_label.grid(row=0, column=0, pady=(40, 5))
+        ctk.CTkLabel(card3, text="DETECTION_CONFIDENCE", font=("Consolas", 11)).pack(padx=P_MD, pady=(P_MD, 0), anchor="w")
+        self.det_slider = ctk.CTkSlider(card3, from_=0.1, to=1.0, number_of_steps=90,
+                                        button_color=COLORS["accent_primary"],
+                                        command=self.controller.update_detection_con)
+        self.det_slider.set(self.controller.current_settings.get("detection_confidence", 0.8))
+        self.det_slider.pack(fill="x", padx=P_MD, pady=(P_SM, P_SM))
+
+        ctk.CTkLabel(card3, text="TRACKING_CONFIDENCE", font=("Consolas", 11)).pack(padx=P_MD, pady=(P_MD, 0), anchor="w")
+        self.track_slider = ctk.CTkSlider(card3, from_=0.1, to=1.0, number_of_steps=90,
+                                          button_color=COLORS["accent_primary"],
+                                          command=self.controller.update_tracking_con)
+        self.track_slider.set(self.controller.current_settings.get("tracking_confidence", 0.8))
+        self.track_slider.pack(fill="x", padx=P_MD, pady=(P_SM, P_MD))
+
+class MainWindow(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("AirGesture Professional Edition")
+        self.geometry("1280x880")
+        self.configure(fg_color=COLORS["background"])
         
-        self.subtitle_label = ctk.CTkLabel(self, text="ADVANCED TOUCHLESS CONTROL", font=ctk.CTkFont(size=12, weight="bold"), text_color="#3B8ED0")
-        self.subtitle_label.grid(row=1, column=0, pady=(0, 40))
-
-        # Status Card
-        self.status_card = ctk.CTkFrame(self, fg_color=("gray85", "gray15"), height=90)
-        self.status_card.grid(row=2, column=0, padx=40, sticky="ew", pady=10)
-        self.status_card.grid_propagate(False)
-        self.status_card.grid_columnconfigure(1, weight=1)
-
-        self.status_dot = ctk.CTkLabel(self.status_card, text="●", text_color="#E74C3C", font=ctk.CTkFont(size=28))
-        self.status_dot.grid(row=0, column=0, padx=(25, 10), pady=30)
+        self.config_path = "config.json"
+        self.engine = None
+        self.load_settings()
+        self.setup_sidebar()
         
-        self.status_text = ctk.CTkLabel(self.status_card, text="SYSTEM OFFLINE", font=ctk.CTkFont(size=16, weight="bold"))
-        self.status_text.grid(row=0, column=1, sticky="w", pady=30)
+        self.main_container = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
+        self.main_container.pack(side="right", fill="both", expand=True)
 
-        # Action Buttons
-        self.launch_btn = ctk.CTkButton(self, text="Launch Engine", command=self.toggle_engine, 
-                                        height=55, corner_radius=12, font=ctk.CTkFont(size=18, weight="bold"))
-        self.launch_btn.grid(row=3, column=0, pady=(40, 15), padx=40, sticky="ew")
+        self.pages = {}
+        for PageClass in (DashboardPage, GesturesPage, SettingsPage):
+            page_name = PageClass.__name__
+            page = PageClass(self.main_container, self)
+            self.pages[page_name] = page
+            page.place(relx=0, rely=0, relwidth=1, relheight=1)
 
-        self.settings_btn = ctk.CTkButton(self, text="Configure Macros & Presets", command=self.open_settings,
-                                          height=45, fg_color="transparent", border_width=2, corner_radius=12)
-        self.settings_btn.grid(row=4, column=0, pady=5, padx=60, sticky="ew")
+        self.show_page("DashboardPage")
+        self.bind("<Key>", self.on_key_press)
+        self.update_frame()
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def setup_sidebar(self):
+        self.sidebar = ctk.CTkFrame(self, width=240, corner_radius=0, fg_color=COLORS["sidebar"])
+        self.sidebar.pack(side="left", fill="y")
+        
+        ctk.CTkLabel(self.sidebar, text="AIR_GESTURE", 
+                      font=("Consolas", 22, "bold"), 
+                      text_color=COLORS["accent_primary"]).pack(pady=(P_LG, 4))
+        ctk.CTkLabel(self.sidebar, text="PROFESSIONAL SUITE", 
+                      font=("Consolas", 10, "bold"), 
+                      text_color=COLORS["accent_secondary"]).pack(pady=(0, 48))
+        
+        self.nav_btns = {}
+        for label, page in [("COMMAND", "DashboardPage"), ("MATRIX", "GesturesPage"), ("PHYSICS", "SettingsPage")]:
+            btn = ctk.CTkButton(self.sidebar, text=f"• {label}", corner_radius=0, height=56, 
+                                 fg_color="transparent", text_color=COLORS["text_body"],
+                                 font=("Consolas", 14, "bold"), anchor="w",
+                                 hover_color=COLORS["surface"],
+                                 command=lambda p=page: self.show_page(p))
+            btn.pack(fill="x", padx=12, pady=1)
+            self.nav_btns[page] = btn
+
+    def show_page(self, page_name):
+        for page in self.pages.values(): page.place_forget()
+        self.pages[page_name].place(relx=0, rely=0, relwidth=1, relheight=1)
+        for name, btn in self.nav_btns.items():
+            is_active = (name == page_name)
+            btn.configure(text_color=COLORS["accent_primary"] if is_active else COLORS["text_body"],
+                          fg_color=COLORS["surface"] if is_active else "transparent")
+
+    def load_settings(self):
+        self.current_settings = {"smoothing": 7, "camera_id": 1, "detection_confidence": 0.8, "tracking_confidence": 0.8}
+        if os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, "r") as f:
+                    data = json.load(f)
+                    self.current_settings.update(data.get("settings", {}))
+                    self.mappings = data.get("mappings", {})
+            except: self.mappings = {}
+        else: self.mappings = {}
+
+    def update_frame(self):
+        if self.engine and self.engine.running:
+            frame = self.engine.get_frame()
+            if frame is not None:
+                lbl = self.pages["DashboardPage"].cam_label
+                w, h = lbl.winfo_width(), lbl.winfo_height()
+                if w > 10:
+                    frame = cv2.resize(frame, (w, h))
+                    img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    pil_img = Image.fromarray(img_rgb)
+                    ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(w, h))
+                    lbl.configure(image=ctk_img, text="")
+        self.after(15, self.update_frame)
 
     def toggle_engine(self):
-        if self.process is None:
+        dash = self.pages["DashboardPage"]
+        if self.engine is None or not self.engine.running:
             try:
-                self.process = subprocess.Popen([sys.executable, "main.py", "1"])
-                self.status_dot.configure(text_color="#2ECC71")
-                self.status_text.configure(text="SYSTEM ACTIVE")
-                self.launch_btn.configure(text="Stop Engine", fg_color="#E74C3C", hover_color="#C0392B")
-            except Exception as e:
-                messagebox.showerror("Error", f"Launch failed: {e}")
+                self.engine = GestureEngine(camera_id=int(self.current_settings["camera_id"]), 
+                                            smoothing=self.current_settings["smoothing"], 
+                                            callback=dash.log)
+                self.engine.start()
+                dash.status_dot.configure(text_color=COLORS["status_active"])
+                dash.status_text.configure(text="LINK_ACTIVE")
+                dash.launch_btn.configure(text="TERMINATE BIO-LINK", fg_color="#2A1A1A", 
+                                          text_color=COLORS["accent_secondary"], border_color=COLORS["accent_secondary"])
+            except Exception as e: messagebox.showerror("BIO_LINK_ERROR", str(e))
         else:
-            self.process.terminate()
-            self.process = None
-            self.status_dot.configure(text_color="#E74C3C")
-            self.status_text.configure(text="SYSTEM OFFLINE")
-            self.launch_btn.configure(text="Launch Engine", fg_color=["#3B8ED0", "#1F6AA5"], hover_color=["#3276AD", "#144870"])
+            self.engine.stop()
+            dash.status_dot.configure(text_color=COLORS["status_error"])
+            dash.status_text.configure(text="LINK_OFFLINE")
+            dash.launch_btn.configure(text="CONNECT BIO-LINK", fg_color=COLORS["accent_primary"], 
+                                      text_color=COLORS["sidebar"], border_color=COLORS["accent_primary"])
+            dash.cam_label.configure(image="", text="SENSOR_FEED_TERMINATED")
 
-    def open_settings(self):
-        mappings = {}
-        if os.path.exists(self.config_path):
-            with open(self.config_path, "r") as f:
-                mappings = json.load(f).get("mappings", {})
-        
-        MacroPopup(self, mappings, self.save_config)
+    def on_key_press(self, event):
+        key = event.keysym.lower()
+        mapping = {"return": "enter", "space": "space", "control_l": "ctrl", "alt_l": "alt", "shift_l": "shift", "win_l": "win"}
+        self.pages["GesturesPage"].handle_keypress(mapping.get(key, key))
 
-    def save_config(self, new_mappings):
+    def update_smoothing(self, val):
+        self.current_settings["smoothing"] = int(val)
+        if self.engine: self.engine.smoothing = int(val)
+        self.save_to_file()
+
+    def update_camera(self, val):
+        self.current_settings["camera_id"] = int(val)
+        self.save_to_file()
+
+    def update_detection_con(self, val):
+        self.current_settings["detection_confidence"] = float(val)
+        self.save_to_file()
+
+    def update_tracking_con(self, val):
+        self.current_settings["tracking_confidence"] = float(val)
+        self.save_to_file()
+
+    def update_mapping_val(self, gesture, val):
+        if gesture not in self.mappings: self.mappings[gesture] = {"action": "press"}
+        act = self.pages["GesturesPage"].ui_elements[gesture]["action"].get()
+        self.mappings[gesture]["action"] = act
+        if act == "click": self.mappings[gesture]["button"] = val
+        elif act == "hotkey": self.mappings[gesture]["keys"] = [k.strip() for k in val.split(",")]
+        else: self.mappings[gesture]["key"] = val
+        self.save_to_file()
+
+    def save_mappings(self):
+        self.save_to_file()
+
+    def save_to_file(self):
         try:
             with open(self.config_path, "w") as f:
-                json.dump({"mappings": new_mappings}, f, indent=2)
-        except Exception as e:
-            messagebox.showerror("Error", f"Save failed: {e}")
+                json.dump({"settings": self.current_settings, "mappings": self.mappings}, f, indent=2)
+        except: pass
+
+    def on_closing(self):
+        if self.engine: self.engine.stop()
+        self.destroy()
+        sys.exit(0)
 
 if __name__ == "__main__":
-    app = MainWindow()
-    app.mainloop()
+    MainWindow().mainloop()

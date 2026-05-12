@@ -15,11 +15,12 @@ The project aims to provide a touchless interface by translating hand movements 
 
 ### Architecture
 - **Entry Points**: 
-    - `main.py`: Currently serves as a distance testing script for pinch gestures.
-    - `gesture_engine.py`: A basic hand tracking visualization script.
+    - `run.py`: Recommended entry point. Handles environment checks and launches the UI.
+    - `ui.py`: The "AirGesture Terminal" dashboard for configuration and control.
+    - `main.py`: The core hand tracking and system control loop.
 - **Modules**:
-    - `modules/hand_tracking.py`: Contains the `HandDetector` class, which encapsulates the MediaPipe Hands solution.
-    - `modules/controller.py`: (Planned) Logic for mapping detected gestures to system actions.
+    - `modules/hand_tracking.py`: Encapsulates MediaPipe Hand tracking logic.
+    - `modules/controller.py`: Logic for mapping detected gestures to system actions (Mouse, Hotkeys, Media).
 
 ## Building and Running
 
@@ -28,22 +29,23 @@ The project aims to provide a touchless interface by translating hand movements 
   - *Note*: MediaPipe's legacy `solutions` API (used in this project) currently has compatibility issues with Python 3.13 on some systems.
 - Webcam
 
-### Setup
-1. Clone the repository.
-2. Install the required dependencies (ensure you are using a compatible Python version):
-   ```bash
-   pip install mediapipe==0.10.9 opencv-python pyautogui numpy
+### Setup (Recommended via `uv`)
+1. Ensure `uv` is installed (`pip install uv`).
+2. Create and prepare the environment:
+   ```powershell
+   uv venv --python 3.10
+   uv pip install -r requirements.txt
    ```
 
 ### Execution
-To run the hand tracking test:
-```bash
-python gesture_engine.py
+Launch the full dashboard:
+```powershell
+python run.py
 ```
 
-To run the gesture distance test:
-```bash
-python main.py
+To bypass the launcher (if in a compatible environment):
+```powershell
+python ui.py
 ```
 
 ## Standalone Desktop Application

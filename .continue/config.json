@@ -1,0 +1,48 @@
+{
+  "models": [
+    {
+      "title": "Kimi-Stable-Coding",
+      "provider": "nvidia",
+      "model": "moonshotai/kimi-k2-instruct",
+      "apiKey": "${NVIDIA_API_KEY}",
+      "completionOptions": {
+        "temperature": 0,
+        "topP": 0.6,
+        "maxTokens": 800,
+        "stop": [
+          "<reserved_token_163777>"
+        ],
+        "extraBody": {
+          "chat_template_kwargs": {
+            "thinking": false
+          }
+        }
+      },
+      "requestOptions": {
+        "timeout": 120000
+      }
+    },
+    {
+      "title": "Kimi-2.6-Chat",
+      "provider": "nvidia",
+      "model": "moonshotai/kimi-k2.6",
+      "apiKey": "${NVIDIA_API_KEY}",
+      "completionOptions": {
+        "temperature": 0,
+        "topP": 0.6,
+        "maxTokens": 800,
+        "stop": [
+          "<reserved_token_163777>"
+        ],
+        "extraBody": {
+          "chat_template_kwargs": {
+            "thinking": false
+          }
+        }
+      },
+      "requestOptions": {
+        "timeout": 180000
+      }
+    }
+  ]
+}

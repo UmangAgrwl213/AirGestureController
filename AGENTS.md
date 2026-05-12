@@ -16,10 +16,10 @@ Keep new runtime logic in `modules/` and keep top-level scripts thin.
 ## Build, Test, and Development Commands
 - Install dependencies: `pip install -r requirements.txt`
 - Run app directly: `python main.py`
-- Run with launcher (recommended on Windows): `python run.py`
-- Pass camera index: `python run.py 1`
-
-Use `run.py` when working across multiple local Python installations (it checks MediaPipe compatibility).
+Use `run.py` when working across multiple local Python installations. It automatically:
+1. Detects and prioritizes the local `.venv/` (Python 3.10) if present.
+2. Checks for MediaPipe legacy compatibility (3.10/3.12).
+3. Propagates command-line arguments (e.g., camera index) to the app.
 
 ## Coding Style & Naming Conventions
 - Follow PEP 8 with 4-space indentation.

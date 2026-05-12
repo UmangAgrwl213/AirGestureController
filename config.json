@@ -1,23 +1,18 @@
 {
+  "settings": {
+    "smoothing": 13,
+    "camera_id": 1,
+    "detection_confidence": 0.8,
+    "tracking_confidence": 0.8
+  },
   "mappings": {
-    "fist": {
-      "action": "hotkey",
+    "thumb_up_right": {
+      "action": "click",
+      "key": "ctrl",
       "keys": [
-        "win",
-        "d"
-      ]
-    },
-    "pinch_index": {
-      "action": "click",
+        "x"
+      ],
       "button": "left"
-    },
-    "pinch_middle": {
-      "action": "click",
-      "button": "right"
-    },
-    "pinch_ring": {
-      "action": "press",
-      "key": "pause/play"
     }
   }
 }
