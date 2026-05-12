@@ -5,6 +5,7 @@ venv/
 .venv/
 .env
 .gemini/
+.continue/
 dist/
 build/
 *.spec
