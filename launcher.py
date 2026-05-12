@@ -29,7 +29,7 @@ def main():
                 if result.returncode == 0:
                     print(f"Found compatible Python {ver}. Relaunching server...")
                     # We launch server.py directly with the correct python
-                    subprocess.run(["py", f"-{ver}", "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"])
+                    subprocess.run(["py", f"-{ver}", "-m", "uvicorn", "server:app", "--host", "127.0.0.1", "--port", "8000"])
                     return
             except FileNotFoundError:
                 continue
@@ -44,7 +44,7 @@ def main():
     # ... rest of logic
     # We use uvicorn to run our server.py
     # Using 'sys.executable' ensures we use the same environment
-    cmd = [sys.executable, "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "warning"]
+    cmd = [sys.executable, "-m", "uvicorn", "server:app", "--host", "127.0.0.1", "--port", "8000", "--log-level", "warning"]
     
     server_process = subprocess.Popen(cmd)
     
